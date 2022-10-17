@@ -36,7 +36,7 @@ const Post = ({ frontMatter, content }) => {
       </div>
       <h1 className="mt-12">{frontMatter.title}</h1>
       <span>{frontMatter.date}</span>
-      <div dangerouslySetInnerHTML={{ __html: content }}></div>
+      <div dangerouslySetInnerHTML={{ __html: markdownit().render(content) }}></div>
     </div>
   );
 };
