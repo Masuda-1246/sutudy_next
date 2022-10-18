@@ -20,13 +20,13 @@ import { visit } from 'unist-util-visit';
 const customCode = () => {
   return (tree) => {
     visit(tree, 'element', (node) => {
-      if (node.tagName === 'p' && node.children[0].type === 'text') {
-        if (node.children[0].value.startsWith('[hello]')) {
+      if (node.tagName === 'p' && node?.children[0]?.type === 'text') {
+        if (node?.children[0]?.value.startsWith('[hello]')) {
           node.tagName = 'div';
           node.properties = {
             className: ['font-bold'],
           };
-          node.children[0].value = 'Hello World';
+          node.?children[0].value = 'Hello World';
         }
       }
     });
