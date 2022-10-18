@@ -13,10 +13,35 @@ import rehypeParse from 'rehype-parse';
 import rehypeReact from 'rehype-react';
 import { createElement, Fragment } from 'react';
 import Link from 'next/link';
+import remarkUnwrapImages from 'remark-unwrap-images';
+import { toc } from 'mdast-util-toc';
+import { visit } from 'unist-util-visit';
 
+const customCode = () => {
+  return (tree) => {
+    visit(tree, 'element', (node) => {
+      if (node.tagName === 'p' && node.children[0].type === 'text') {
+        if (node.children[0].value.startsWith('[hello]')) {
+          node.tagName = 'div';
+          node.properties = {
+            className: ['font-bold'],
+          };
+          node.children[0].value = 'Hello World';
+        }
+      }
+    });
+  };
+};
 
-const MyImage = ({ src, alt }) => {
-  return <Image src={src} alt={alt} width="1200" height="700" />;
+const getToc = (options) => {
+  return (node) => {
+    const result = toc(node, options);
+    node.children = [result.map];
+  };
+};
+
+const MyImage = ({ src, alt, width, height}) => {
+  return <Image src={src} alt={alt} width={width} height={height} />;
 };
 
 const MyLink = ({ children, href }) => {
@@ -53,20 +78,39 @@ export async function getStaticProps({ params }) {
   const file = fs.readFileSync(`posts/${params.slug}.md`, 'utf-8');
   const { data, content } = matter(file);
 
-  const result = await unified()
+  const toc = await unified()
   .use(remarkParse)
-  .use(remarkPrism, {
-    /* options */
-  })
-  .use(remarkToc, {
+  .use(getToc, {
     heading: '目次',
+    tight: true,
   })
   .use(remarkRehype)
   .use(rehypeStringify)
   .process(content);
 
+  const result = await unified()
+  .use(remarkParse)
+  .use(remarkPrism, {
+    plugins: ['line-numbers'],
+  })
+  .use(remarkToc, {
+    heading: '目次',
+    tight: true,
+  })
+  .use(remarkUnwrapImages)
+  .use(remarkRehype, { allowDangerousHtml: true })
+  .use(customCode)
+  .use(rehypeSlug)
+  .use(rehypeStringify, { allowDangerousHtml: true })
+  .process(content);
+
   return {
-    props: { frontMatter: data, content: result.toString(), slug: params.slug },
+    props: {
+      frontMatter: data,
+      content: result.toString(),
+      toc: toc.toString(), //追加
+      slug: params.slug,
+    },
   };
 }
 
@@ -84,7 +128,7 @@ export async function getStaticPaths() {
   };
 }
 
-const Post = ({ frontMatter, content }) => {
+const Post = ({ frontMatter, content, toc, slug }) => {
   return (
     <>
       <NextSeo
@@ -92,7 +136,7 @@ const Post = ({ frontMatter, content }) => {
         description={frontMatter.description}
         openGraph={{
           type: 'website',
-          url: `http:localhost:3000/posts/${frontMatter.slug}`,
+          url: `http:localhost:3000/posts/${slug}`,
           title: frontMatter.title,
           description: frontMatter.description,
           images: [
@@ -106,20 +150,36 @@ const Post = ({ frontMatter, content }) => {
         }}
       />
       <div className="prose prose-lg max-w-none">
-      <div className="border">
-        <Image
-          src={`/${frontMatter.image}`}
-          width={1200}
-          height={700}
-          alt={frontMatter.title}
-        />
+        <div className="border">
+          <Image
+            src={`/${frontMatter.image}`}
+            width={1200}
+            height={700}
+            alt={frontMatter.title}
+          />
+        </div>
+        <h1 className="mt-12">{frontMatter.title}</h1>
+        <span>{frontMatter.date}</span>
+        <div className="space-x-2">
+          {frontMatter.categories.map((category) => (
+            <span key={category}>
+              <Link href={`/categories/${category}`}>
+                <a>{category}</a>
+              </Link>
+            </span>
+          ))}
+        </div>
+        <div className="grid grid-cols-12">
+          <div className="col-span-9">{toReactNode(content)}</div>
+          <div className="col-span-3">
+            <div
+              className="sticky top-[50px]"
+              dangerouslySetInnerHTML={{ __html: toc }}
+            ></div>
+          </div>
+        </div>
       </div>
-      <h1 className="mt-12">{frontMatter.title}</h1>
-      <span>{frontMatter.date}</span>
-      {toReactNode(content)}
-    </div>
     </>
-    
   );
 };
 
