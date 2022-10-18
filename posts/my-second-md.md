@@ -22,5 +22,21 @@ Next.js を使って Markdown のブログサイトの構築を一から行な�
 npx create-next-app コマンドを利用して Next.js プロジェクトの作成を行います。
 
 ```js:js
-const a = 123
+import Layout from '../components/layout';
+import '../styles/globals.css';
+import '../styles/prism.css';
+import SEO from '../next-seo.config';
+import { DefaultSeo } from 'next-seo';
+
+function MyApp({ Component, pageProps }) {
+  return (
+    <Layout>
+      <DefaultSeo {...SEO} />
+      <Component {...pageProps} />
+    </Layout>
+  );
+}
+
+export default MyApp;
 ```
+![Next.jsのWelcomeページ](http://localhost:3000/nextjs.png)
