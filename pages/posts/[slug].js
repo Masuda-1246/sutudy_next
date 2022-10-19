@@ -26,7 +26,7 @@ const customCode = () => {
           node.properties = {
             className: ['font-bold'],
           };
-          node.?children[0].value = 'Hello World';
+          node?.children[0].value = 'Hello World';
         }
       }
     });
